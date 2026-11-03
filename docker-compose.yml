@@ -1,0 +1,59 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: shophippy
+      POSTGRES_PASSWORD: shophippy
+      POSTGRES_DB: shophippy
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shophippy"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: ./api
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      SHOPHIPPY_DATABASE_URL: postgres://shophippy:shophippy@postgres:5432/shophippy
+      SHOPHIPPY_REDIS_URL: redis://redis:6379
+      SHOPHIPPY_BIND_ADDR: 0.0.0.0:8080
+      SHOPHIPPY_MANAGED_CLOUD: "false"   # self-hosted => zero gateway fee
+      STRIPE_API_KEY: ${STRIPE_API_KEY:-}
+      PAYPAL_CLIENT_ID: ${PAYPAL_CLIENT_ID:-}
+      PAYPAL_CLIENT_SECRET: ${PAYPAL_CLIENT_SECRET:-}
+      PAYPAL_ENV: sandbox
+    ports:
+      - "8080:8080"
+
+  dashboard:
+    build: ./dashboard
+    depends_on:
+      - api
+    environment:
+      VITE_API_URL: http://localhost:8080
+    ports:
+      - "5173:80"
+
+volumes:
+  pgdata:

@@ -1,0 +1,36 @@
+# Shophippy API — Fly.io configuration
+app = "shophippy-api"
+primary_region = "ams"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  SHOPHIPPY_BIND_ADDR = "0.0.0.0:8080"
+  SHOPHIPPY_MANAGED_CLOUD = "true"
+  PAYPAL_ENV = "sandbox"
+
+# Secrets (set via `fly secrets set ...`):
+#   SHOPHIPPY_DATABASE_URL   — Fly Postgres / Neon connection string
+#   SHOPHIPPY_REDIS_URL      — Upstash / Fly Redis connection string
+#   SHOPHIPPY_DEMO_API_KEY
+#   SHOPHIPPY_ADMIN_TOKEN
+#   STRIPE_API_KEY
+#   PAYPAL_CLIENT_ID
+#   PAYPAL_CLIENT_SECRET
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 200
+    hard_limit = 250
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

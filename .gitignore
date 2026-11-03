@@ -1,0 +1,25 @@
+# Rust / API
+target/
+**/*.rs.bk
+api/.env
+
+# Dashboard / Node
+node_modules/
+dist/
+.vite/
+*.local
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Fly.io / Vercel local artifacts
+fly.toml.bak
+.vercel
