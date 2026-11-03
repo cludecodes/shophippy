@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use async_trait::async_trait;
 use axum::extract::FromRequestParts;
 use axum::http::request::Parts;
 use redis::aio::ConnectionManager;
@@ -29,6 +30,7 @@ pub struct Merchant {
     pub tier: i32,
 }
 
+#[async_trait]
 impl FromRequestParts<AppState> for Merchant {
     type Rejection = ApiError;
 
@@ -61,6 +63,7 @@ impl FromRequestParts<AppState> for Merchant {
 /// Extractor guarding fee-rule admin endpoints with a shared token.
 pub struct AdminGuard;
 
+#[async_trait]
 impl FromRequestParts<AppState> for AdminGuard {
     type Rejection = ApiError;
 

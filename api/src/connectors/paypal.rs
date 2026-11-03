@@ -156,7 +156,7 @@ impl Connector for PayPal {
             return Err(ApiError::BadRequest("missing paypal-signature".into()));
         }
         let value: Value = serde_json::from_slice(body)
-            .map_err(|e| ApiError::BadRequest(format("invalid webhook payload: {e}")))?;
+            .map_err(|e| ApiError::BadRequest(format!("invalid webhook payload: {e}")))?;
 
         Ok(WebhookEvent {
             connector: "paypal".into(),
@@ -174,10 +174,6 @@ impl Connector for PayPal {
                 .to_ascii_lowercase(),
         })
     }
-}
-
-fn format(msg: impl std::fmt::Display) -> String {
-    msg.to_string()
 }
 
 #[cfg(test)]

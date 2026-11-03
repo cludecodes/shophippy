@@ -68,7 +68,7 @@ pub async fn book_charge(
     .bind(currency)
     .bind(amount_minor)
     .bind(format!("liability:merchant:{merchant_id}"))
-    .execute(&mut tx)
+    .execute(&mut *tx)
     .await?;
 
     if gateway_fee_minor > 0 {
@@ -84,7 +84,7 @@ pub async fn book_charge(
         .bind(gateway_fee_minor)
         .bind("revenue:platform:gateway_fees")
         .bind(format!("liability:merchant:{merchant_id}:fees"))
-        .execute(&mut tx)
+        .execute(&mut *tx)
         .await?;
     }
     tx.commit().await?;
@@ -249,5 +249,4 @@ pub async fn dashboard_summary(pool: &PgPool, merchant_id: Uuid) -> anyhow::Resu
             by_corridor,
             recent,
         })
-    }
 }

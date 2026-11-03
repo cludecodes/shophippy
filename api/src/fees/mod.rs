@@ -39,7 +39,7 @@ impl FeeDecision {
     }
 }
 
-fn apply(amount_minor: i64, bps: i64) -> i64 {
+pub fn apply(amount_minor: i64, bps: i64) -> i64 {
     if bps <= 0 || amount_minor <= 0 {
         return 0;
     }

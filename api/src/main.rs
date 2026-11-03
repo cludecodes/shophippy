@@ -16,7 +16,6 @@ use crate::config::Config;
 use crate::connectors::paypal::PayPal;
 use crate::connectors::registry::Registry;
 use crate::connectors::stripe::Stripe;
-use crate::error::ApiError;
 use crate::state::AppState;
 
 #[tokio::main]
@@ -35,7 +34,13 @@ async fn main() -> anyhow::Result<()> {
         .max_connections(10)
         .connect(&cfg.database_url)
         .await?;
-    sqlx::migrate!("migrations").run(&pool).await?;
+    // Runtime Migrator keeps the build hermetic (no compile-time path magic)
+    // and works both with `cargo run` (cwd = api/) and the Docker image (/app).
+    let migrations_dir =
+        std::env::var("SHOPHIPPY_MIGRATIONS_DIR").unwrap_or_else(|_| "migrations".into());
+    let migrator = sqlx::migrate::Migrator::new(std::path::PathBuf::from(&migrations_dir)).await
+    .map_err(|e| anyhow::anyhow!("failed to load migrations from '{migrations_dir}': {e}"))?;
+    migrator.run(&pool).await?;
     tracing::info!("database migrated");
 
     let redis = idempotency::connect(&cfg.redis_url).await;
@@ -65,18 +70,15 @@ async fn main() -> anyhow::Result<()> {
         connectors: Arc::new(registry),
     };
 
-    let app = routes::router(state).layer(TraceLayer::new_for_http()).layer(CorsLayer::permissive());
+    let app = routes::router(state.clone())
+        .layer(TraceLayer::new_for_http())
+        .layer(CorsLayer::permissive());
 
-    let addr = state_addr()?;
+    let addr: std::net::SocketAddr = state.config.bind_addr.parse().map_err(|e| {
+        anyhow::anyhow!("invalid SHOPHIPPY_BIND_ADDR '{}': {e}", state.config.bind_addr)
+    })?;
     let listener = tokio::net::TcpListener::bind(addr).await?;
     tracing::info!("shophippy API listening on http://{addr}");
     axum::serve(listener, app).await?;
     Ok(())
-}
-
-fn state_addr() -> anyhow::Result<std::net::SocketAddr> {
-    let raw = std::env::var("SHOPHIPPY_BIND_ADDR").unwrap_or_else(|_| "0.0.0.0:8080".into());
-    raw.parse().map_err(|e| {
-        ApiError::Internal(anyhow::anyhow!("invalid SHOPHIPPY_BIND_ADDR '{raw}': {e}")).into()
-    })
 }

@@ -8,8 +8,9 @@
 //! duplicate inserts.
 
 use redis::aio::ConnectionManager;
+use redis::AsyncCommands;
 
-pub const TTL_SECS: u64 = 48 * 60 * 60;
+pub const TTL_SECS: i64 = 48 * 60 * 60;
 
 pub async fn connect(url: &str) -> Option<ConnectionManager> {
     match redis::Client::open(url) {
@@ -31,12 +32,14 @@ pub fn cache_key(merchant_id: &uuid::Uuid, key: &uuid::Uuid) -> String {
     format!("idempotency:{merchant_id}:{key}")
 }
 
+/// Replay value stored after a successful charge, if any.
 pub async fn get(redis: Option<&ConnectionManager>, key: &str) -> Option<String> {
     let cm = redis?;
     let mut conn = cm.clone();
-    redis::cmd("GET").arg(key).query_async(&mut conn).await.ok()?
+    conn.get(key).await.ok()?
 }
 
+/// Persist the final response payload with a TTL.
 pub async fn store(
     redis: Option<&ConnectionManager>,
     key: &str,
@@ -45,41 +48,35 @@ pub async fn store(
     if let Some(cm) = redis {
         let mut conn = cm.clone();
         let payload = serde_json::to_string(value).unwrap_or_default();
-        if let Err(e) = redis::cmd("SETEX")
-            .arg(key)
-            .arg(TTL_SECS as isize)
-            .arg(payload)
-            .query_async::<()>(&mut conn)
-            .await
-        {
+        if let Err(e) = conn.set_ex::<_, _, ()>(key, payload, TTL_SECS as u64).await {
             tracing::warn!("idempotency store failed: {e}");
         }
     }
 }
 
-/// Reserve the key if possible; returns true when we are the first writer.
-pub async fn reserve(
-    redis: Option<&ConnectionManager>,
-    key: &str,
-) -> bool {
-    let Some(cm) = redis else { return true };
+/// Reserve the key (SET NX) to block concurrent duplicate charges.
+pub async fn reserve(redis: Option<&ConnectionManager>, key: &str) -> bool {
+    let Some(cm) = redis else {
+        // No Redis: rely on the DB unique index.
+        return true;
+    };
     let mut conn = cm.clone();
-    matches!(
-        redis::cmd("SET")
-            .arg(key)
-            .arg("reserved")
-            .arg("EX")
-            .arg(TTL_SECS as isize)
-            .arg("NX")
-            .query_async::<Option<()>>(&mut conn)
-            .await,
-        Ok(Some(_))
-    )
+    match conn.set_nx::<_, _, Option<()>>(key, "in-flight").await {
+        Ok(Some(_)) => {
+            let _ = conn.expire::<_, ()>(key, TTL_SECS).await;
+            true
+        }
+        Ok(None) => false,
+        Err(e) => {
+            tracing::warn!("idempotency reserve failed: {e}");
+            true // fail open; DB constraints still protect us
+        }
+    }
 }
 
 pub async fn release(redis: Option<&ConnectionManager>, key: &str) {
     if let Some(cm) = redis {
         let mut conn = cm.clone();
-        let _ = redis::cmd("DEL").arg(key).query_async::<()>(&mut conn).await;
+        let _ = conn.del::<_, ()>(key).await;
     }
 }

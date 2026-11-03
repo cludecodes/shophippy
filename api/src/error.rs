@@ -17,6 +17,18 @@ pub enum ApiError {
     Internal(#[from] anyhow::Error),
 }
 
+impl From<sqlx::Error> for ApiError {
+    fn from(e: sqlx::Error) -> Self {
+        Self::Internal(anyhow::Error::new(e).context("database error"))
+    }
+}
+
+impl From<redis::RedisError> for ApiError {
+    fn from(e: redis::RedisError) -> Self {
+        Self::Internal(anyhow::Error::new(e).context("redis error"))
+    }
+}
+
 impl IntoResponse for ApiError {
     fn into_response(self) -> axum::response::Response {
         let (status, code, msg) = match &self {

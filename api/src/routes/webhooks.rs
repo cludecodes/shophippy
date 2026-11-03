@@ -3,7 +3,6 @@ use axum::http::HeaderMap;
 use axum::response::IntoResponse;
 use axum::Json;
 use serde_json::json;
-use uuid::Uuid;
 
 use crate::error::ApiResult;
 use crate::state::AppState;

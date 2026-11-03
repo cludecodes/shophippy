@@ -89,11 +89,7 @@ pub async fn create_payment(
     .await
     .map_err(ApiError::from)?;
 
-    let gateway_fee_minor = if fee.bps == 0 {
-        0
-    } else {
-        (body.amount_minor * fee.bps + 9_999) / 10_000
-    };
+    let gateway_fee_minor = crate::fees::apply(body.amount_minor, fee.bps);
 
     let connector = state
         .connectors

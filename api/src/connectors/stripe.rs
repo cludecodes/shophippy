@@ -168,7 +168,7 @@ impl Connector for Stripe {
             return Err(ApiError::BadRequest("missing stripe-signature header".into()));
         }
         let value: Value = serde_json::from_slice(body)
-            .map_err(|e| ApiError::BadRequest(format("invalid webhook payload: {e}")))?;
+            .map_err(|e| ApiError::BadRequest(format!("invalid webhook payload: {e}")))?;
 
         let data = value.get("data").and_then(|d| d.get("object"));
         Ok(WebhookEvent {
@@ -186,10 +186,6 @@ impl Connector for Stripe {
                 .to_string(),
         })
     }
-}
-
-fn format(msg: impl std::fmt::Display) -> String {
-    msg.to_string()
 }
 
 #[cfg(test)]

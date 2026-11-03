@@ -1,7 +1,8 @@
 # ---- Build stage ----
 FROM rust:1.79-slim AS build
 WORKDIR /app
-COPY Cargo.toml ./
+RUN apt-get update && apt-get install -y --no-install-recommends pkg-config libssl-dev && rm -rf /var/lib/apt/lists/*
+COPY Cargo.toml Cargo.lock ./
 RUN mkdir src && echo "fn main() {}" > src/main.rs && cargo build --release && rm -rf src
 COPY src ./src
 COPY migrations ./migrations

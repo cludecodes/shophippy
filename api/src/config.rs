@@ -1,4 +1,3 @@
-use anyhow::Context;
 
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -44,6 +43,7 @@ impl Config {
         })
     }
 
+
     /// sha256-hex of the API key, used as the lookup token for auth.
     pub fn hash_key(key: &str) -> String {
         use sha2::{Digest, Sha256};
@@ -51,11 +51,4 @@ impl Config {
         hex::encode(digest)
     }
 
-    pub fn database_url(&self) -> anyhow::Result<&str> {
-        self.database_url
-            .as_str()
-            .split_whitespace()
-            .next()
-            .context("empty database url")
-    }
 }
