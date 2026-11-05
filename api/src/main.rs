@@ -36,8 +36,9 @@ async fn main() -> anyhow::Result<()> {
         .await?;
     // Runtime Migrator keeps the build hermetic (no compile-time path magic)
     // and works both with `cargo run` (cwd = api/) and the Docker image (/app).
-    let migrations_dir =
-        std::env::var("SHOPHIPPY_MIGRATIONS_DIR").unwrap_or_else(|_| "migrations".into());
+    let migrations_dir = std::env::var("SHOPHIPPY_MIGRATIONS_DIR")
+        .or_else(|_| std::env::var("SHOPHIPPY_BIN_MIGRATIONS"))
+        .unwrap_or_else(|_| "migrations".into());
     let migrator = sqlx::migrate::Migrator::new(std::path::PathBuf::from(&migrations_dir)).await
     .map_err(|e| anyhow::anyhow!("failed to load migrations from '{migrations_dir}': {e}"))?;
     migrator.run(&pool).await?;
