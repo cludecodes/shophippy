@@ -45,6 +45,26 @@ docker compose up --build
 
 Migrations are applied automatically on API startup (`sqlx::migrate!`).
 
+## Live demonstration deployment
+
+| Component | URL | Notes |
+|-----------|-----|-------|
+| API       | https://spg-ojawew.fly.dev | Fly.io, AMS region, managed-cloud fee mode (150 bps demo rules) |
+| Demo key  | `sk_live_demo_merchant` | Demo merchant seeded automatically |
+| Admin     | `X-Admin-Token` | see `SHOPHIPPY_ADMIN_TOKEN` secret |
+
+```bash
+curl -X POST https://spg-ojawew.fly.dev/v1/payments \
+  -H "X-Api-Key: sk_live_demo_merchant" \
+  -H "Idempotency-Key: $(uuidgen)" \
+  -H "Content-Type: application/json" \
+  -d '{"amount_minor": 10500, "currency": "USD", "corridor": "EU-US", "destination_country": "US"}'
+```
+
+Connectors run in **sandbox mode** on the demo deployment (deterministic
+simulated results, no real money moves). Postgres and Redis run as dedicated
+machines on the same Fly private network.
+
 ## Create a payment
 
 ```bash
@@ -97,9 +117,9 @@ your own Postgres/Redis and connector keys — see `docker-compose.yml` and
 
 ## Deployment
 
-- **API → Fly.io**: see `api/fly.toml` (`fly deploy`)
+- **API → Fly.io**: app `spg-ojawew` (live at https://spg-ojawew.fly.dev); see `api/fly.toml` and `DEPLOY.md`
 - **Dashboard → Vercel**: `vercel --prod` from `dashboard/`
-- **GitHub**: `git push origin main`
+- **GitHub**: https://github.com/cludecodes/shophippy
 
 ## License
 
