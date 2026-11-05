@@ -1,5 +1,5 @@
 # Shophippy API — Fly.io configuration
-app = "shophippy-api"
+app = "spg-ojawew"
 primary_region = "ams"
 
 [build]

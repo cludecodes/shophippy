@@ -1,5 +1,5 @@
 # ---- Build stage ----
-FROM rust:1.79-slim AS build
+FROM rust:1-slim AS build
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends pkg-config libssl-dev && rm -rf /var/lib/apt/lists/*
 COPY Cargo.toml Cargo.lock ./
@@ -9,7 +9,7 @@ COPY migrations ./migrations
 RUN touch src/main.rs && cargo build --release
 
 # ---- Runtime stage ----
-FROM debian:bookworm-slim
+FROM debian:trixie-slim
 RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
 COPY --from=build /app/target/release/shophippy-api /usr/local/bin/shophippy-api
 COPY migrations /app/migrations
