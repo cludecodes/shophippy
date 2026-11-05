@@ -383,8 +383,8 @@ pub async fn create_payout(
         return Err(ApiError::BadRequest("amount_minor must be positive".into()));
     }
     let available: i64 = sqlx::query_scalar(
-        "SELECT COALESCE(SUM(amount_minor - gateway_fee_minor - connector_fee_minor - refunded_minor), 0)
-           FROM payments WHERE merchant_id = $1 AND status = 'succeeded'",
+        "SELECT COALESCE(SUM(amount_minor - gateway_fee_minor - connector_fee_minor - refunded_minor), 0)::BIGINT
+            FROM payments WHERE merchant_id = $1 AND status = 'succeeded'",
     )
     .bind(merchant.id)
     .fetch_one(&state.pool)

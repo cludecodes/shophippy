@@ -184,30 +184,30 @@ pub async fn dashboard_summary(pool: &PgPool, merchant_id: Uuid) -> anyhow::Resu
     .await?;
 
     let volume: i64 =
-        sqlx::query_scalar("SELECT COALESCE(SUM(amount_minor),0) FROM payments WHERE merchant_id = $1 AND status = 'succeeded'")
+        sqlx::query_scalar("SELECT COALESCE(SUM(amount_minor),0)::BIGINT FROM payments WHERE merchant_id = $1 AND status = 'succeeded'")
             .bind(merchant_id)
             .fetch_one(pool)
             .await?;
     let gateway_fee: i64 =
-        sqlx::query_scalar("SELECT COALESCE(SUM(gateway_fee_minor),0) FROM payments WHERE merchant_id = $1 AND status = 'succeeded'")
+        sqlx::query_scalar("SELECT COALESCE(SUM(gateway_fee_minor),0)::BIGINT FROM payments WHERE merchant_id = $1 AND status = 'succeeded'")
             .bind(merchant_id)
             .fetch_one(pool)
             .await?;
     let connector_fee: i64 =
-        sqlx::query_scalar("SELECT COALESCE(SUM(connector_fee_minor),0) FROM payments WHERE merchant_id = $1 AND status = 'succeeded'")
+        sqlx::query_scalar("SELECT COALESCE(SUM(connector_fee_minor),0)::BIGINT FROM payments WHERE merchant_id = $1 AND status = 'succeeded'")
             .bind(merchant_id)
             .fetch_one(pool)
             .await?;
     let refunded: i64 =
-        sqlx::query_scalar("SELECT COALESCE(SUM(refunded_minor),0) FROM payments WHERE merchant_id = $1 AND status = 'succeeded'")
+        sqlx::query_scalar("SELECT COALESCE(SUM(refunded_minor),0)::BIGINT FROM payments WHERE merchant_id = $1 AND status = 'succeeded'")
             .bind(merchant_id)
             .fetch_one(pool)
             .await?;
 
     let by_connector = sqlx::query_as::<_, ConnectorSlice>(
         "SELECT connector,
-                COALESCE(SUM(amount_minor), 0) AS volume_minor,
-                COALESCE(SUM(gateway_fee_minor), 0) AS fees_minor,
+                COALESCE(SUM(amount_minor), 0)::BIGINT AS volume_minor,
+                COALESCE(SUM(gateway_fee_minor), 0)::BIGINT AS fees_minor,
                 COUNT(*) AS txn_count
            FROM payments
           WHERE merchant_id = $1 AND status = 'succeeded'
@@ -219,8 +219,8 @@ pub async fn dashboard_summary(pool: &PgPool, merchant_id: Uuid) -> anyhow::Resu
 
     let by_corridor = sqlx::query_as::<_, CorridorSlice>(
         "SELECT COALESCE(corridor, 'domestic') AS corridor,
-                COALESCE(SUM(amount_minor), 0) AS volume_minor,
-                COALESCE(SUM(gateway_fee_minor), 0) AS fees_minor
+                COALESCE(SUM(amount_minor), 0)::BIGINT AS volume_minor,
+                COALESCE(SUM(gateway_fee_minor), 0)::BIGINT AS fees_minor
            FROM payments
           WHERE merchant_id = $1 AND status = 'succeeded'
           GROUP BY 1 ORDER BY volume_minor DESC LIMIT 12",
