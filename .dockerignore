@@ -1,0 +1,9 @@
+# Keep root deploy context small (used when deploying the combined image from
+# the repository root: flyctl deploy -a <app> -c api/fly.toml)
+.git
+api/target
+dashboard/node_modules
+dashboard/dist
+api/.env
+dashboard/.env
+dashboard/.vercel

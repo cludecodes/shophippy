@@ -3,6 +3,8 @@ app = "spg-ojawew"
 primary_region = "ams"
 
 [build]
+  # Deployed from the repository root: `flyctl deploy -a spg-ojawew`
+  # (context = repo root, so the dashboard can be bundled into the image).
   dockerfile = "Dockerfile"
 
 [env]

@@ -13,6 +13,7 @@ dist/
 .env
 .env.*
 !.env.example
+!dashboard/.env.production
 
 # IDE / OS
 .idea/

@@ -10,6 +10,7 @@ mod state;
 use std::sync::Arc;
 
 use tower_http::cors::CorsLayer;
+use tower_http::services::{ServeDir, ServeFile};
 use tower_http::trace::TraceLayer;
 
 use crate::config::Config;
@@ -74,6 +75,22 @@ async fn main() -> anyhow::Result<()> {
     let app = routes::router(state.clone())
         .layer(TraceLayer::new_for_http())
         .layer(CorsLayer::permissive());
+
+    // Serve the built merchant dashboard from the same origin when it is
+    // bundled into the image (api/Dockerfile → /app/dashboard); API routes
+    // keep priority because the fallback only fires on unmatched paths.
+    let dashboard_dir =
+        std::env::var("SHOPHIPPY_DASHBOARD_DIR").unwrap_or_else(|_| "/app/dashboard".into());
+    let app = if std::path::Path::new(&dashboard_dir).join("index.html").exists() {
+        tracing::info!("static dashboard served from '{dashboard_dir}' at '/'");
+        app.fallback_service(
+            ServeDir::new(&dashboard_dir)
+                .not_found_service(ServeFile::new(format!("{dashboard_dir}/index.html"))),
+        )
+    } else {
+        tracing::info!("no bundled dashboard at '{dashboard_dir}' — API only");
+        app
+    };
 
     let addr: std::net::SocketAddr = state.config.bind_addr.parse().map_err(|e| {
         anyhow::anyhow!("invalid SHOPHIPPY_BIND_ADDR '{}': {e}", state.config.bind_addr)
