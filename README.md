@@ -49,6 +49,7 @@ Migrations are applied automatically on API startup (`sqlx::migrate!`).
 
 | Component | URL | Notes |
 |-----------|-----|-------|
+| Dashboard | https://shophippy-dashboard.vercel.app | Vercel, wired to the live API |
 | API       | https://spg-ojawew.fly.dev | Fly.io, AMS region, managed-cloud fee mode (150 bps demo rules) |
 | Demo key  | `sk_live_demo_merchant` | Demo merchant seeded automatically |
 | Admin     | `X-Admin-Token` | see `SHOPHIPPY_ADMIN_TOKEN` secret |
@@ -117,8 +118,8 @@ your own Postgres/Redis and connector keys — see `docker-compose.yml` and
 
 ## Deployment
 
-- **API → Fly.io**: app `spg-ojawew` (live at https://spg-ojawew.fly.dev); see `api/fly.toml` and `DEPLOY.md`
-- **Dashboard → Vercel**: `vercel --prod` from `dashboard/`
+- **Dashboard → Vercel**: project `shophippy-dashboard` (https://shophippy-dashboard.vercel.app, env baked from `dashboard/.env.production`); redeploy with `vercel deploy --prod` from `dashboard/`
+- **API → Fly.io**: app `spg-ojawew` (live at https://spg-ojawew.fly.dev); see `api/fly.toml` and `DEPLOY.md`. Optional single-image deploy (`Dockerfile` at repo root, dashboard bundled into the API) — the API then serves the dashboard at `/`
 - **GitHub**: https://github.com/cludecodes/shophippy
 
 ## License
