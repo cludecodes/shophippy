@@ -62,6 +62,11 @@ curl -X POST https://spg-ojawew.fly.dev/v1/payments \
   -d '{"amount_minor": 10500, "currency": "USD", "corridor": "EU-US", "destination_country": "US"}'
 ```
 
+**Admin console:** sign in on the dashboard's *Admin console* panel with the
+`SHOPHIPPY_ADMIN_EMAIL` / `SHOPHIPPY_ADMIN_PASSWORD` credentials (argon2-hashed
+at first startup, 7-day DB-backed sessions via `POST /v1/admin/login`), or use
+the static ops token as an `X-Admin-Token` header for automation.
+
 Connectors run in **sandbox mode** on the demo deployment (deterministic
 simulated results, no real money moves). Postgres and Redis run as dedicated
 machines on the same Fly private network.
