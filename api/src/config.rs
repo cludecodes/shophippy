@@ -9,6 +9,8 @@ pub struct Config {
     pub managed_cloud: bool,
     pub demo_api_key: String,
     pub admin_token: String,
+    /// Admin console login; password comes via SHOPHIPPY_ADMIN_PASSWORD at seed time.
+    pub admin_email: Option<String>,
     pub stripe_api_key: Option<String>,
     pub paypal_client_id: Option<String>,
     pub paypal_client_secret: Option<String>,
@@ -36,6 +38,7 @@ impl Config {
             demo_api_key: std::env::var("SHOPHIPPY_DEMO_API_KEY")
                 .unwrap_or_else(|_| "sk_live_demo_merchant".into()),
             admin_token: std::env::var("SHOPHIPPY_ADMIN_TOKEN").unwrap_or_else(|_| "dev_admin".into()),
+            admin_email: std::env::var("SHOPHIPPY_ADMIN_EMAIL").ok().map(|e| e.trim().to_lowercase()).filter(|e| !e.is_empty()),
             stripe_api_key,
             paypal_client_id,
             paypal_client_secret,

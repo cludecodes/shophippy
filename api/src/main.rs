@@ -1,3 +1,4 @@
+mod admin;
 mod config;
 mod connectors;
 mod error;
@@ -64,6 +65,7 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!("connectors registered: {:?}", registry.names());
 
     ledger::seed_demo_data(&pool, &cfg).await?;
+    admin::seed_from_env(&pool).await?;
 
     let state = AppState {
         pool,

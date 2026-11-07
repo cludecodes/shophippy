@@ -4,7 +4,7 @@ import { CorridorChart } from './components/CorridorChart';
 import { ConnectorSplit } from './components/ConnectorSplit';
 import { StatCard } from './components/StatCard';
 import { TransactionsTable } from './components/TransactionsTable';
-import type { Summary } from './types';
+import type { AdminMerchant, FeeRule, Summary } from './types';
 
 const DEFAULT_API_URL =
   (import.meta.env.VITE_API_URL as string | undefined) ??
@@ -32,6 +32,79 @@ export default function App() {
       setLoading(false);
     }
   }, [apiUrl, apiKey]);
+
+  // ---- Admin console ----
+  const [adminToken, setAdminToken] = useState(
+    () => localStorage.getItem('shophippy_admin_token') ?? '',
+  );
+  const [adminEmail, setAdminEmail] = useState(
+    () => localStorage.getItem('shophippy_admin_email') ?? '',
+  );
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [adminBusy, setAdminBusy] = useState(false);
+  const [adminError, setAdminError] = useState<string | null>(null);
+  const [feeRules, setFeeRules] = useState<FeeRule[] | null>(null);
+  const [merchants, setMerchants] = useState<AdminMerchant[] | null>(null);
+
+  const loadAdminData = useCallback(
+    async (token: string) => {
+      try {
+        const client = new ApiClient(apiUrl, apiKey);
+        const [rules, ms] = await Promise.all([
+          client.feeRules(token),
+          client.merchants(token).catch(() => null),
+        ]);
+        setFeeRules(rules);
+        setMerchants(ms);
+        setAdminError(null);
+      } catch (e) {
+        setAdminError(
+          e instanceof Error && /invalid api key|unauthorized/i.test(e.message)
+            ? 'Session expired — sign in again.'
+            : e instanceof Error
+              ? e.message
+              : String(e),
+        );
+      }
+    },
+    [apiUrl, apiKey],
+  );
+
+  useEffect(() => {
+    if (adminToken) void loadAdminData(adminToken);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleAdminLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAdminBusy(true);
+    setAdminError(null);
+    try {
+      const client = new ApiClient(apiUrl, apiKey);
+      const session = await client.adminLogin(loginEmail.trim(), loginPassword);
+      localStorage.setItem('shophippy_admin_token', session.session_token);
+      localStorage.setItem('shophippy_admin_email', session.email);
+      setAdminToken(session.session_token);
+      setAdminEmail(session.email);
+      setLoginPassword('');
+      await loadAdminData(session.session_token);
+    } catch (err) {
+      setAdminError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setAdminBusy(false);
+    }
+  };
+
+  const handleAdminLogout = () => {
+    localStorage.removeItem('shophippy_admin_token');
+    localStorage.removeItem('shophippy_admin_email');
+    setAdminToken('');
+    setAdminEmail('');
+    setFeeRules(null);
+    setMerchants(null);
+    setAdminError(null);
+  };
 
   useEffect(() => {
     void load();
@@ -145,6 +218,102 @@ export default function App() {
               </p>
             )}
             <TransactionsTable payments={summary.recent} />
+          </section>
+
+          <section className="panel">
+            <h2>Admin console</h2>
+            {adminError && <p className="auth-error">{adminError}</p>}
+            {!adminToken ? (
+              <form className="auth-form" onSubmit={handleAdminLogin}>
+                <input
+                  aria-label="Admin email"
+                  type="email"
+                  placeholder="admin email"
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  autoComplete="username"
+                  required
+                />
+                <input
+                  aria-label="Admin password"
+                  type="password"
+                  placeholder="password"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  autoComplete="current-password"
+                  required
+                />
+                <button type="submit" disabled={adminBusy || !loginEmail || !loginPassword}>
+                  {adminBusy ? 'Signing in…' : 'Sign in'}
+                </button>
+              </form>
+            ) : (
+              <>
+                <div className="auth-row">
+                  <p className="hint">
+                    Signed in as <strong>{adminEmail}</strong>
+                  </p>
+                  <button onClick={handleAdminLogout}>Log out</button>
+                </div>
+
+                {merchants && merchants.length > 0 && (
+                  <div className="table-scroll">
+                    <table className="table">
+                      <thead>
+                        <tr>
+                          <th>Merchant</th>
+                          <th>Country</th>
+                          <th>Tier</th>
+                          <th>Onboarded</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {merchants.map((m) => (
+                          <tr key={m.id}>
+                            <td>{m.name}</td>
+                            <td>{m.country}</td>
+                            <td>{m.tier}</td>
+                            <td>{new Date(m.created_at).toLocaleDateString()}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {feeRules && feeRules.length > 0 && (
+                  <>
+                    <h3 className="sub-head">Fee rules</h3>
+                    <div className="table-scroll">
+                      <table className="table">
+                        <thead>
+                          <tr>
+                            <th>Scope</th>
+                            <th>Corridor</th>
+                            <th>Fee</th>
+                            <th>Min amount</th>
+                            <th>Priority</th>
+                            <th>Active</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {feeRules.map((r) => (
+                            <tr key={r.id}>
+                              <td>{r.scope}</td>
+                              <td>{r.corridor ?? '—'}</td>
+                              <td>{formatBps(r.bps)}</td>
+                              <td>{formatMoney(r.min_amount_minor)}</td>
+                              <td>{r.priority}</td>
+                              <td>{r.active ? '✓' : '-'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                )}
+              </>
+            )}
           </section>
 
           <footer className="footer">

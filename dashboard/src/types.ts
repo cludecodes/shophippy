@@ -51,3 +51,17 @@ export interface FeeRule {
   priority: number;
   active: boolean;
 }
+
+export interface AdminSession {
+  email: string;
+  session_token: string;
+  expires_at: string;
+}
+
+export interface AdminMerchant {
+  id: string;
+  name: string;
+  country: string;
+  tier: number;
+  created_at: string;
+}

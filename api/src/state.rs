@@ -60,7 +60,9 @@ impl FromRequestParts<AppState> for Merchant {
     }
 }
 
-/// Extractor guarding fee-rule admin endpoints with a shared token.
+/// Extractor guarding admin endpoints. Accepts either the static ops token
+/// (`SHOPHIPPY_ADMIN_TOKEN`) or an email/password login session minted via
+/// `POST /v1/admin/login`.
 pub struct AdminGuard;
 
 #[async_trait]
@@ -74,10 +76,13 @@ impl FromRequestParts<AppState> for AdminGuard {
             .and_then(|v| v.to_str().ok())
             .ok_or_else(|| ApiError::Unauthorized("missing X-Admin-Token header".into()))?;
 
-        if !constant_time_eq(token.as_bytes(), state.config.admin_token.as_bytes()) {
-            return Err(ApiError::Unauthorized("invalid admin token".into()));
+        if constant_time_eq(token.as_bytes(), state.config.admin_token.as_bytes()) {
+            return Ok(Self);
         }
-        Ok(Self)
+        if crate::admin::verify_session(&state.pool, token).await.is_some() {
+            return Ok(Self);
+        }
+        Err(ApiError::Unauthorized("invalid admin token".into()))
     }
 }
 

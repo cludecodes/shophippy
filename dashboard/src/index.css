@@ -145,6 +145,29 @@ button:disabled { opacity: 0.6; cursor: wait; }
 
 .bps { color: var(--muted); font-size: 11px; }
 .hint { color: var(--muted); font-size: 12px; margin-top: -8px; }
+
+/* Admin console */
+.auth-form { display: flex; gap: 8px; flex-wrap: wrap; }
+.auth-form input {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font: inherit;
+  padding: 8px 10px;
+  min-width: 200px;
+}
+.auth-form input:focus { outline: 1px solid var(--accent-2); }
+.auth-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: -6px; }
+.auth-error {
+  color: #fca5a5;
+  background: rgba(248, 113, 113, 0.12);
+  border-radius: 8px;
+  font-size: 12px;
+  margin: 0 0 10px;
+  padding: 8px 10px;
+}
+.sub-head { font-size: 12px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); margin: 16px 0 8px; }
 .empty { color: var(--muted); font-size: 13px; }
 .empty code { color: var(--accent-2); }
 

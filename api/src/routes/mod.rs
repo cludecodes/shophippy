@@ -1,3 +1,4 @@
+pub mod admin;
 pub mod payments;
 pub mod webhooks;
 
@@ -15,6 +16,8 @@ pub fn router(state: AppState) -> Router {
         .route("/v1/payouts", routing::post(payments::create_payout).get(payments::list_payouts))
         .route("/v1/dashboard/summary", routing::get(payments::dashboard_summary))
         .route("/v1/webhooks/:connector", routing::post(webhooks::receive))
+        .route("/v1/admin/login", routing::post(admin::login))
+        .route("/v1/admin/merchants", routing::get(admin::list_merchants))
         .route(
             "/admin/fee-rules",
             routing::post(payments::create_fee_rule).get(payments::list_fee_rules),
