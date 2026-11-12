@@ -1,4 +1,6 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
+import './chatWidget.css'
+import { createSaraEngine } from './chatEngine.js'
 
 const USD_TO_PKR = 276.951691
 const EXCHANGE_RATE_AS_OF = 'Nov 11, 2026'
@@ -13,7 +15,175 @@ const budgetChoices = [
   { usd: 'Not decided yet', pkr: 'Not decided yet' },
 ]
 
-function installSiteEnhancements(frame) {
+function ChatIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
+      <path d="M5 18.5 3.8 21l4.4-1.6c1.15.42 2.4.65 3.8.65 5.52 0 10-3.8 10-8.5S17.52 3 12 3 2 6.8 2 11.5c0 2.8 1.17 5.1 3 7Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+      <path d="M7.5 11.5h.01m4.49 0h.01m4.49 0h.01" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function ChatWidget({ isOpen, onOpenChange, onStartQuote }) {
+  const [draft, setDraft] = useState('')
+  const [typing, setTyping] = useState(false)
+  const [messages, setMessages] = useState([
+    {
+      id: 1,
+      from: 'sara',
+      text: "Hi! I'm Sara, Shophippy's virtual project guide. Ask me about services, timelines, budgets — or tell me what you're building.",
+    },
+  ])
+  const endOfMessagesRef = useRef(null)
+  const replyEngine = useRef(createSaraEngine())
+  const typingTimerRef = useRef(null)
+
+  useEffect(() => {
+    endOfMessagesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+  }, [messages, typing, isOpen])
+
+  useEffect(() => () => clearTimeout(typingTimerRef.current), [])
+
+  const sendMessage = (message) => {
+    const text = message.trim()
+    if (!text || typing) return
+
+    setMessages((current) => [
+      ...current,
+      { id: Date.now(), from: 'visitor', text },
+    ])
+    setDraft('')
+
+    // Human-feel pacing: Sara "types" for a moment that scales with her answer.
+    const reply = replyEngine.current(text)
+    const delay = Math.min(2200, 650 + reply.length * 9)
+    setTyping(true)
+    clearTimeout(typingTimerRef.current)
+    typingTimerRef.current = window.setTimeout(() => {
+      setTyping(false)
+      setMessages((current) => [
+        ...current,
+        { id: Date.now() + 1, from: 'sara', text: reply },
+      ])
+    }, delay)
+  }
+
+  return (
+    <div className="sara-chat">
+      {isOpen && (
+        <section className="sara-panel" aria-label="Chat with Sara">
+          <header className="sara-header">
+            <div className="sara-avatar" aria-hidden="true">S</div>
+            <div className="sara-heading">
+              <strong>Sara</strong>
+              <span>Shophippy virtual project guide</span>
+            </div>
+            <button
+              className="sara-close"
+              type="button"
+              aria-label="Close chat"
+              onClick={() => onOpenChange(false)}
+            >
+              ×
+            </button>
+          </header>
+
+          <div className="sara-disclosure">
+            Virtual assistant · Messages stay in this browser
+          </div>
+
+          <div className="sara-messages" role="log" aria-live="polite" aria-relevant="additions">
+            {messages.map((message) => (
+              <div
+                className={`sara-message sara-message-${message.from}`}
+                key={message.id}
+              >
+                {message.text}
+              </div>
+            ))}
+            {typing && (
+              <div className="sara-message sara-message-sara sara-typing" aria-label="Sara is typing">
+                <i /><i /><i />
+              </div>
+            )}
+            {messages.length === 1 && !typing && (
+              <div className="sara-suggestions" aria-label="Suggested questions">
+                {['What services do you offer?', 'How does the process work?', 'How do I get a quote?'].map((prompt) => (
+                  <button type="button" key={prompt} onClick={() => sendMessage(prompt)}>
+                    {prompt}
+                  </button>
+                ))}
+              </div>
+            )}
+            <div ref={endOfMessagesRef} />
+          </div>
+
+          <form
+            className="sara-compose"
+            onSubmit={(event) => {
+              event.preventDefault()
+              sendMessage(draft)
+            }}
+          >
+            <input
+              aria-label="Message Sara"
+              autoComplete="off"
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+              placeholder="Ask Sara a question..."
+            />
+            <button type="submit" aria-label="Send message" disabled={!draft.trim() || typing}>
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
+                <path d="m4 12 16-8-5.8 16-2.8-6.2L4 12Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+                <path d="m11.4 13.8 4.2-4.2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+              </svg>
+            </button>
+          </form>
+
+          <button className="sara-quote-link" type="button" onClick={onStartQuote}>
+            Start a free quote <span aria-hidden="true">→</span>
+          </button>
+        </section>
+      )}
+      <button
+        className="sara-launcher"
+        type="button"
+        aria-label={isOpen ? 'Close chat with Sara' : 'Chat with Sara'}
+        aria-expanded={isOpen}
+        onClick={() => onOpenChange((open) => !open)}
+      >
+        {isOpen ? <span className="sara-launcher-close">×</span> : <ChatIcon />}
+        <span className="sara-launcher-label">Chat with Sara</span>
+      </button>
+    </div>
+  )
+}
+
+function updateChatPlacement(frame) {
+  const chat = document.querySelector('.sara-chat')
+  const launcher = chat?.querySelector('.sara-launcher')
+  const quoteContinue = [...(frame.contentDocument?.querySelectorAll('.page.active button') || [])]
+    .find((button) => button.textContent.trim().startsWith('Continue'))
+  if (!chat || !launcher || !quoteContinue) {
+    chat?.style.removeProperty('right')
+    return
+  }
+
+  const buttonRect = quoteContinue.getBoundingClientRect()
+  const launcherRect = launcher.getBoundingClientRect()
+  const overlaps = launcherRect.left < buttonRect.right
+    && launcherRect.right > buttonRect.left
+    && launcherRect.top < buttonRect.bottom
+    && launcherRect.bottom > buttonRect.top
+
+  if (overlaps) {
+    chat.style.right = `${Math.max(12, window.innerWidth - buttonRect.left + 12)}px`
+  } else {
+    chat.style.removeProperty('right')
+  }
+}
+
+function installSiteEnhancements(frame, openChat, updateChatPlacement) {
   const doc = frame.contentDocument
   if (!doc?.body || !doc.head) return () => {}
 
@@ -31,6 +201,9 @@ function installSiteEnhancements(frame) {
       .shophippy-currency-mode{position:absolute;top:0;right:0;display:inline-flex;gap:3px;padding:3px;border:1px solid rgba(255,255,255,.12);border-radius:999px;background:rgba(255,255,255,.04)}
       .shophippy-currency-mode button{border:0;border-radius:999px;padding:4px 9px;background:transparent;color:#9aa0b8;font:600 11px/1.3 Inter,system-ui,sans-serif}
       .shophippy-currency-mode button[aria-pressed="true"]{color:#fff;background:linear-gradient(110deg,#8b5cf6,#22d3ee)}
+      .shophippy-chat-cta{display:inline-flex;align-items:center;gap:7px;padding:0;border:0;background:transparent;color:#b9a2ff;font:600 14px/1.6 Inter,system-ui,sans-serif}
+      .shophippy-chat-cta svg{width:16px;height:16px}
+      .shophippy-chat-cta:hover{color:#fff}
       .shophippy-currency-note{display:block;margin-top:6px;color:#8f96ad;font:400 10px/1.4 Inter,system-ui,sans-serif}
     `
     doc.head.appendChild(style)
@@ -118,6 +291,39 @@ function installSiteEnhancements(frame) {
       }
       updateBudgetOptions(select)
     }
+
+    const footer = doc.querySelector('footer')
+    const contactColumn = [...(footer?.querySelectorAll('.foot-col') || [])].find((column) =>
+      [...column.querySelectorAll('h5')].some((heading) => heading.textContent.trim() === 'Get in touch'),
+    )
+    const contactList = contactColumn?.querySelector('ul')
+    if (contactList) {
+      for (const item of [...contactList.querySelectorAll('li')]) {
+        if (/@|\+92|Karachi,\s*Pakistan/i.test(item.textContent)) item.remove()
+      }
+      if (!contactList.querySelector('[data-sara-footer-chat]')) {
+        const item = doc.createElement('li')
+        const button = doc.createElement('button')
+        button.type = 'button'
+        button.className = 'shophippy-chat-cta'
+        button.dataset.saraFooterChat = 'true'
+        const icon = doc.createElementNS('http://www.w3.org/2000/svg', 'svg')
+        icon.setAttribute('viewBox', '0 0 24 24')
+        icon.setAttribute('fill', 'none')
+        icon.setAttribute('aria-hidden', 'true')
+        const path = doc.createElementNS('http://www.w3.org/2000/svg', 'path')
+        path.setAttribute('d', 'M5 18.5 3.8 21l4.4-1.6c1.15.42 2.4.65 3.8.65 5.52 0 10-3.8 10-8.5S17.52 3 12 3 2 6.8 2 11.5c0 2.8 1.17 5.1 3 7Z')
+        path.setAttribute('stroke', 'currentColor')
+        path.setAttribute('stroke-width', '1.8')
+        path.setAttribute('stroke-linejoin', 'round')
+        icon.appendChild(path)
+        button.append(icon, doc.createTextNode('Chat with Sara'))
+        button.addEventListener('click', openChat)
+        item.appendChild(button)
+        contactList.prepend(item)
+      }
+    }
+    updateChatPlacement()
   }
 
   let submittingQuote = false
@@ -249,6 +455,7 @@ function installSiteEnhancements(frame) {
       })
   }
 
+  const refreshChatPlacement = () => updateChatPlacement()
   const handleCurrencyClick = (event) => {
     const button = event.target.closest('.shophippy-currency-mode button[data-currency]')
     if (!button || currency === button.dataset.currency) return
@@ -268,6 +475,8 @@ function installSiteEnhancements(frame) {
 
   doc.addEventListener('click', handleCurrencyClick)
   doc.addEventListener('click', handleQuoteSubmit, true)
+  doc.addEventListener('scroll', refreshChatPlacement, true)
+  window.addEventListener('resize', refreshChatPlacement)
   updatePage()
   observer = new doc.defaultView.MutationObserver(updatePage)
   observer.observe(doc.body, {
@@ -281,12 +490,15 @@ function installSiteEnhancements(frame) {
     observer?.disconnect()
     doc.removeEventListener('click', handleCurrencyClick)
     doc.removeEventListener('click', handleQuoteSubmit, true)
+    doc.removeEventListener('scroll', refreshChatPlacement, true)
+    window.removeEventListener('resize', refreshChatPlacement)
   }
 }
 
 export default function App() {
   const frameRef = useRef(null)
   const cleanupRef = useRef(null)
+  const [chatOpen, setChatOpen] = useState(false)
 
   useEffect(() => {
     const frame = frameRef.current
@@ -294,7 +506,11 @@ export default function App() {
 
     const enhance = () => {
       cleanupRef.current?.()
-      cleanupRef.current = installSiteEnhancements(frame)
+      cleanupRef.current = installSiteEnhancements(
+        frame,
+        () => setChatOpen(true),
+        () => updateChatPlacement(frame),
+      )
     }
     frame.addEventListener('load', enhance)
     if (frame.contentDocument?.readyState === 'complete') enhance()
@@ -305,6 +521,19 @@ export default function App() {
     }
   }, [])
 
+  const startQuote = () => {
+    const doc = frameRef.current?.contentDocument
+    const quoteButton = [...(doc?.querySelectorAll('button, a') || [])].find((element) =>
+      /get a free quote|get a quote/i.test(element.textContent.trim()),
+    )
+    if (quoteButton) {
+      quoteButton.click()
+    } else if (frameRef.current?.contentWindow) {
+      frameRef.current.contentWindow.location.hash = '#/quote'
+    }
+    setChatOpen(false)
+  }
+
   return (
     <div className="app-shell">
       <iframe
@@ -312,6 +541,11 @@ export default function App() {
         src="/static-build.html"
         title="Shophippy"
         className="site-frame"
+      />
+      <ChatWidget
+        isOpen={chatOpen}
+        onOpenChange={setChatOpen}
+        onStartQuote={startQuote}
       />
     </div>
   )
