@@ -41,7 +41,7 @@ The quote table must already exist in Neon; run `npm run migrate` locally with t
 - `../package.json` - workspace scripts for running commands from the project root
 - `package.json` - app dependencies and Vite configuration
 
-The Vite app includes the USD/PKR quote budget selector and Sara, a local virtual project guide. PKR ranges are approximate USD equivalents using PKR 276.95 per USD (rate checked Nov 11, 2026); the final quote may differ. The standalone HTML is an original static snapshot; use `npm run dev` for these interactive features.
+The Vite app includes the USD/PKR quote budget selector. PKR ranges are approximate USD equivalents using PKR 276.95 per USD (rate checked Nov 11, 2026); the final quote may differ. The standalone HTML is an original static snapshot; use `npm run dev` for these interactive features.
 
 ## Alternative: Open HTML only
 If you don't want Node:

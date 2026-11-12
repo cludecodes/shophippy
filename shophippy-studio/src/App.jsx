@@ -1,5 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
-import './chatWidget.css'
+import React, { useEffect, useRef } from 'react'
 
 const USD_TO_PKR = 276.951691
 const EXCHANGE_RATE_AS_OF = 'Nov 11, 2026'
@@ -13,170 +12,8 @@ const budgetChoices = [
   { usd: '$1,200 - $2,000+', pkr: `${pkrAmount(1200)} - ${pkrAmount(2000)}+` },
   { usd: 'Not decided yet', pkr: 'Not decided yet' },
 ]
-const pkrBudgetSummary = budgetChoices.slice(0, 5).map((choice) => choice.pkr).join('; ')
 
-function getSaraReply(message) {
-  const text = message.toLowerCase()
-
-  if (/\b(hi|hello|hey|good morning|good afternoon)\b/.test(text)) {
-    return 'Hi! What are you hoping to build? I can help with services, the project process, timelines, or preparing a quote.'
-  }
-  if (/\b(service|services|what do you do|build|develop|website|web app|saas|android|mobile|design|cloud|devops|ai|integration)\b/.test(text)) {
-    return 'Shophippy is a software studio offering web applications, SaaS platforms, Android apps, UI/UX design, Cloud & DevOps, and AI integrations. Tell me a little about your idea and I can point you to the right next step.'
-  }
-  if (/\b(budget|price|pricing|cost|quote|currency|usd|pkr)\b/.test(text)) {
-    return `The USD ranges run from under $150 up to $1,200 - $2,000+. In PKR, the approximate equivalents are ${pkrBudgetSummary}, using PKR ${USD_TO_PKR.toFixed(2)} per USD (rate checked ${EXCHANGE_RATE_AS_OF}). These are planning ranges; the final quote depends on scope and may differ.`
-  }
-  if (/\b(timeline|how long|deadline|when|weeks|months)\b/.test(text)) {
-    return 'The timeline depends on the project scope. The quote form includes timeline options, and Shophippy says it shares progress each week and responds to quote requests within 24 business hours.'
-  }
-  if (/\b(process|how does|workflow|work with|steps|kickoff)\b/.test(text)) {
-    return 'The site describes a clear, weekly-update process from kickoff through design and development to launch. You can share your project scope, design direction, and preferred timeline in the free quote form.'
-  }
-  if (/\b(portfolio|projects|examples|work|case stud)\b/.test(text)) {
-    return 'The portfolio highlights a subscription analytics suite, a doctor and clinic booking app, and a headless storefront rebuild. Which kind of project is closest to yours?'
-  }
-  if (/\b(pakistan|where|location|karachi|country|worldwide|remote)\b/.test(text)) {
-    return 'Shophippy is proudly based in Pakistan and serves clients worldwide.'
-  }
-  if (/\b(human|person|real person|live agent|speak to|talk to someone|team member)\b/.test(text)) {
-    return 'I’m Sara, Shophippy’s virtual project guide—not a live human agent. Share your project through the quote form and the team can follow up; the site says quote requests receive a response within 24 business hours.'
-  }
-  if (/\b(maintenance|support|bug|existing|codebase|redesign|migration)\b/.test(text)) {
-    return 'The quote form supports existing projects too, including redesigns, new features, maintenance, and migrations. Let me know what you already have and what you want to change.'
-  }
-
-  return 'I don’t want to guess about your project. Shophippy works on web apps, SaaS, Android, UI/UX, Cloud & DevOps, and AI integrations. What are you looking to build?'
-}
-
-function ChatIcon() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
-      <path d="M5 18.5 3.8 21l4.4-1.6c1.15.42 2.4.65 3.8.65 5.52 0 10-3.8 10-8.5S17.52 3 12 3 2 6.8 2 11.5c0 2.8 1.17 5.1 3 7Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
-      <path d="M7.5 11.5h.01m4.49 0h.01m4.49 0h.01" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
-    </svg>
-  )
-}
-
-function ChatWidget({ isOpen, onOpenChange, onStartQuote }) {
-  const [draft, setDraft] = useState('')
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      from: 'sara',
-      text: 'Hi! I’m Sara, Shophippy’s virtual project guide. I can help with services, timelines, budgets, or getting started. What are you planning?',
-    },
-  ])
-  const endOfMessagesRef = useRef(null)
-
-  useEffect(() => {
-    endOfMessagesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
-  }, [messages, isOpen])
-
-  const sendMessage = (message) => {
-    const text = message.trim()
-    if (!text) return
-
-    setMessages((current) => [
-      ...current,
-      { id: Date.now(), from: 'visitor', text },
-    ])
-    setDraft('')
-    window.setTimeout(() => {
-      setMessages((current) => [
-        ...current,
-        { id: Date.now() + 1, from: 'sara', text: getSaraReply(text) },
-      ])
-    }, 350)
-  }
-
-  return (
-    <div className="sara-chat">
-      {isOpen && (
-        <section className="sara-panel" aria-label="Chat with Sara">
-          <header className="sara-header">
-            <div className="sara-avatar" aria-hidden="true">S</div>
-            <div className="sara-heading">
-              <strong>Sara</strong>
-              <span>Shophippy virtual project guide</span>
-            </div>
-            <button
-              className="sara-close"
-              type="button"
-              aria-label="Close chat"
-              onClick={() => onOpenChange(false)}
-            >
-              ×
-            </button>
-          </header>
-
-          <div className="sara-disclosure">
-            Virtual assistant · Messages stay in this browser
-          </div>
-
-          <div className="sara-messages" role="log" aria-live="polite" aria-relevant="additions">
-            {messages.map((message) => (
-              <div
-                className={`sara-message sara-message-${message.from}`}
-                key={message.id}
-              >
-                {message.text}
-              </div>
-            ))}
-            {messages.length === 1 && (
-              <div className="sara-suggestions" aria-label="Suggested questions">
-                {['What services do you offer?', 'How does the process work?', 'How do I get a quote?'].map((prompt) => (
-                  <button type="button" key={prompt} onClick={() => sendMessage(prompt)}>
-                    {prompt}
-                  </button>
-                ))}
-              </div>
-            )}
-            <div ref={endOfMessagesRef} />
-          </div>
-
-          <form
-            className="sara-compose"
-            onSubmit={(event) => {
-              event.preventDefault()
-              sendMessage(draft)
-            }}
-          >
-            <input
-              aria-label="Message Sara"
-              autoComplete="off"
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              placeholder="Ask Sara a question..."
-            />
-            <button type="submit" aria-label="Send message" disabled={!draft.trim()}>
-              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
-                <path d="m4 12 16-8-5.8 16-2.8-6.2L4 12Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-                <path d="m11.4 13.8 4.2-4.2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-              </svg>
-            </button>
-          </form>
-
-          <button className="sara-quote-link" type="button" onClick={onStartQuote}>
-            Start a free quote <span aria-hidden="true">→</span>
-          </button>
-        </section>
-      )}
-      <button
-        className="sara-launcher"
-        type="button"
-        aria-label={isOpen ? 'Close chat with Sara' : 'Chat with Sara'}
-        aria-expanded={isOpen}
-        onClick={() => onOpenChange((open) => !open)}
-      >
-        {isOpen ? <span className="sara-launcher-close">×</span> : <ChatIcon />}
-        <span className="sara-launcher-label">Chat with Sara</span>
-      </button>
-    </div>
-  )
-}
-
-function installSiteEnhancements(frame, openChat, updateChatPlacement) {
+function installSiteEnhancements(frame) {
   const doc = frame.contentDocument
   if (!doc?.body || !doc.head) return () => {}
 
@@ -194,9 +31,6 @@ function installSiteEnhancements(frame, openChat, updateChatPlacement) {
       .shophippy-currency-mode{position:absolute;top:0;right:0;display:inline-flex;gap:3px;padding:3px;border:1px solid rgba(255,255,255,.12);border-radius:999px;background:rgba(255,255,255,.04)}
       .shophippy-currency-mode button{border:0;border-radius:999px;padding:4px 9px;background:transparent;color:#9aa0b8;font:600 11px/1.3 Inter,system-ui,sans-serif}
       .shophippy-currency-mode button[aria-pressed="true"]{color:#fff;background:linear-gradient(110deg,#8b5cf6,#22d3ee)}
-      .shophippy-chat-cta{display:inline-flex;align-items:center;gap:7px;padding:0;border:0;background:transparent;color:#b9a2ff;font:600 14px/1.6 Inter,system-ui,sans-serif}
-      .shophippy-chat-cta svg{width:16px;height:16px}
-      .shophippy-chat-cta:hover{color:#fff}
       .shophippy-currency-note{display:block;margin-top:6px;color:#8f96ad;font:400 10px/1.4 Inter,system-ui,sans-serif}
     `
     doc.head.appendChild(style)
@@ -282,39 +116,6 @@ function installSiteEnhancements(frame, openChat, updateChatPlacement) {
       }
       updateBudgetOptions(select)
     }
-
-    const footer = doc.querySelector('footer')
-    const contactColumn = [...(footer?.querySelectorAll('.foot-col') || [])].find((column) =>
-      [...column.querySelectorAll('h5')].some((heading) => heading.textContent.trim() === 'Get in touch'),
-    )
-    const contactList = contactColumn?.querySelector('ul')
-    if (contactList) {
-      for (const item of [...contactList.querySelectorAll('li')]) {
-        if (/@|\+92|Karachi,\s*Pakistan/i.test(item.textContent)) item.remove()
-      }
-      if (!contactList.querySelector('[data-sara-footer-chat]')) {
-        const item = doc.createElement('li')
-        const button = doc.createElement('button')
-        button.type = 'button'
-        button.className = 'shophippy-chat-cta'
-        button.dataset.saraFooterChat = 'true'
-        const icon = doc.createElementNS('http://www.w3.org/2000/svg', 'svg')
-        icon.setAttribute('viewBox', '0 0 24 24')
-        icon.setAttribute('fill', 'none')
-        icon.setAttribute('aria-hidden', 'true')
-        const path = doc.createElementNS('http://www.w3.org/2000/svg', 'path')
-        path.setAttribute('d', 'M5 18.5 3.8 21l4.4-1.6c1.15.42 2.4.65 3.8.65 5.52 0 10-3.8 10-8.5S17.52 3 12 3 2 6.8 2 11.5c0 2.8 1.17 5.1 3 7Z')
-        path.setAttribute('stroke', 'currentColor')
-        path.setAttribute('stroke-width', '1.8')
-        path.setAttribute('stroke-linejoin', 'round')
-        icon.appendChild(path)
-        button.append(icon, doc.createTextNode('Chat with Sara'))
-        button.addEventListener('click', openChat)
-        item.appendChild(button)
-        contactList.prepend(item)
-      }
-    }
-    updateChatPlacement()
   }
 
   let submittingQuote = false
@@ -446,7 +247,6 @@ function installSiteEnhancements(frame, openChat, updateChatPlacement) {
       })
   }
 
-  const refreshChatPlacement = () => updateChatPlacement()
   const handleCurrencyClick = (event) => {
     const button = event.target.closest('.shophippy-currency-mode button[data-currency]')
     if (!button || currency === button.dataset.currency) return
@@ -466,8 +266,6 @@ function installSiteEnhancements(frame, openChat, updateChatPlacement) {
 
   doc.addEventListener('click', handleCurrencyClick)
   doc.addEventListener('click', handleQuoteSubmit, true)
-  doc.addEventListener('scroll', refreshChatPlacement, true)
-  window.addEventListener('resize', refreshChatPlacement)
   updatePage()
   observer = new doc.defaultView.MutationObserver(updatePage)
   observer.observe(doc.body, {
@@ -481,39 +279,12 @@ function installSiteEnhancements(frame, openChat, updateChatPlacement) {
     observer?.disconnect()
     doc.removeEventListener('click', handleCurrencyClick)
     doc.removeEventListener('click', handleQuoteSubmit, true)
-    doc.removeEventListener('scroll', refreshChatPlacement, true)
-    window.removeEventListener('resize', refreshChatPlacement)
-  }
-}
-
-function updateChatPlacement(frame) {
-  const chat = document.querySelector('.sara-chat')
-  const launcher = chat?.querySelector('.sara-launcher')
-  const quoteContinue = [...(frame.contentDocument?.querySelectorAll('.page.active button') || [])]
-    .find((button) => button.textContent.trim().startsWith('Continue'))
-  if (!chat || !launcher || !quoteContinue) {
-    chat?.style.removeProperty('right')
-    return
-  }
-
-  const buttonRect = quoteContinue.getBoundingClientRect()
-  const launcherRect = launcher.getBoundingClientRect()
-  const overlaps = launcherRect.left < buttonRect.right
-    && launcherRect.right > buttonRect.left
-    && launcherRect.top < buttonRect.bottom
-    && launcherRect.bottom > buttonRect.top
-
-  if (overlaps) {
-    chat.style.right = `${Math.max(12, window.innerWidth - buttonRect.left + 12)}px`
-  } else {
-    chat.style.removeProperty('right')
   }
 }
 
 export default function App() {
   const frameRef = useRef(null)
   const cleanupRef = useRef(null)
-  const [chatOpen, setChatOpen] = useState(false)
 
   useEffect(() => {
     const frame = frameRef.current
@@ -521,11 +292,7 @@ export default function App() {
 
     const enhance = () => {
       cleanupRef.current?.()
-      cleanupRef.current = installSiteEnhancements(
-        frame,
-        () => setChatOpen(true),
-        () => updateChatPlacement(frame),
-      )
+      cleanupRef.current = installSiteEnhancements(frame)
     }
     frame.addEventListener('load', enhance)
     if (frame.contentDocument?.readyState === 'complete') enhance()
@@ -536,19 +303,6 @@ export default function App() {
     }
   }, [])
 
-  const startQuote = () => {
-    const doc = frameRef.current?.contentDocument
-    const quoteButton = [...(doc?.querySelectorAll('button, a') || [])].find((element) =>
-      /get a free quote|get a quote/i.test(element.textContent.trim()),
-    )
-    if (quoteButton) {
-      quoteButton.click()
-    } else if (frameRef.current?.contentWindow) {
-      frameRef.current.contentWindow.location.hash = '#/quote'
-    }
-    setChatOpen(false)
-  }
-
   return (
     <div className="app-shell">
       <iframe
@@ -556,11 +310,6 @@ export default function App() {
         src="/static-build.html"
         title="Shophippy"
         className="site-frame"
-      />
-      <ChatWidget
-        isOpen={chatOpen}
-        onOpenChange={setChatOpen}
-        onStartQuote={startQuote}
       />
     </div>
   )
