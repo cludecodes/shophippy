@@ -28,8 +28,8 @@ The repository-root `vercel.json` builds the Vite app and routes `/api/*` to a s
 
 You do **not** need a Vercel API key. The app only needs its Neon database connection string, kept as a server-side environment variable.
 
-1. In Neon Console, open the `s-studio` project and click **Connect**. Select the `production` branch and the app's database and role, enable the pooled connection option, then copy the connection string. Keep it private.
-2. In Vercel, open the site's project, then **Settings → Environment Variables**. Add a variable named `DATABASE_URL`, paste the pooled Neon connection string as its value, and enable it for **Production** (and **Preview** if preview deployments need database access). Do not add it with a `VITE_` prefix.
+1. In Neon Console, open the project and click **Connect**. Select the `production` branch and the app's database and role, enable the pooled connection option, then copy the connection string. Keep it private.
+2. In Vercel, open the site's project, then **Settings → Environment Variables**. Add a variable named `DATABASE_URL`, paste the pooled Neon connection string as its value (unquoted), and enable it for **Production** (and **Preview** if preview deployments need database access). Do not add it with a `VITE_` prefix.
 3. In Vercel **Settings → Build and Deployment**, make sure the Root Directory is `./`. The build command and output directory are already set in the repository's `vercel.json`.
 4. Redeploy the latest `main` commit so the new environment variable takes effect. Verify that the deployment homepage loads and `/api/health` reports a connected database.
 
@@ -42,6 +42,10 @@ The quote table must already exist in Neon; run `npm run migrate` locally with t
 - `package.json` - app dependencies and Vite configuration
 
 The Vite app includes the USD/PKR quote budget selector and Sara, a local virtual project guide with context-aware conversation (she remembers your project and name during the chat). PKR ranges are approximate USD equivalents using PKR 276.95 per USD (rate checked Nov 11, 2026); the final quote may differ. The standalone HTML is an original static snapshot; use `npm run dev` for these interactive features.
+
+## Production
+
+Live at https://shophippy-omega.vercel.app (Vercel project `shophippy`, GitHub repo `cludecodes/shophippy` — pushes to `main` deploy automatically).
 
 ## Alternative: Open HTML only
 If you don't want Node:
