@@ -22,6 +22,19 @@ The quote form stores submissions in the linked Neon Postgres database only afte
 - For production, run `npm run build`, then `npm start`; configure `DATABASE_URL` in the host environment.
 - `npm run build` copies the embedded standalone site into the production bundle.
 
+## Vercel deployment
+
+The repository-root `vercel.json` builds the Vite app and routes `/api/*` to a serverless function that uses the same quote API as local Express.
+
+You do **not** need a Vercel API key. The app only needs its Neon database connection string, kept as a server-side environment variable.
+
+1. In Neon Console, open the `s-studio` project and click **Connect**. Select the `production` branch and the app's database and role, enable the pooled connection option, then copy the connection string. Keep it private.
+2. In Vercel, open the site's project, then **Settings → Environment Variables**. Add a variable named `DATABASE_URL`, paste the pooled Neon connection string as its value, and enable it for **Production** (and **Preview** if preview deployments need database access). Do not add it with a `VITE_` prefix.
+3. In Vercel **Settings → Build and Deployment**, make sure the Root Directory is `./`. The build command and output directory are already set in the repository's `vercel.json`.
+4. Redeploy the latest `main` commit so the new environment variable takes effect. Verify that the deployment homepage loads and `/api/health` reports a connected database.
+
+The quote table must already exist in Neon; run `npm run migrate` locally with the direct `DATABASE_URL_UNPOOLED` connection if it has not been created.
+
 ## Structure
 - `static-build.html` - Fully built standalone version (you can open directly or with Live Server)
 - `src/` - React source (Vite + React)
