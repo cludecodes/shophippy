@@ -46,7 +46,9 @@ function installSiteEnhancements(frame) {
       }
 
       const field = select.parentElement
-      field?.classList.add('shophippy-budget-field')
+      if (field && !field.classList.contains('shophippy-budget-field')) {
+        field.classList.add('shophippy-budget-field')
+      }
       let mode = field?.querySelector('.shophippy-currency-mode')
       if (!mode) {
         mode = doc.createElement('span')
