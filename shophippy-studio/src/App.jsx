@@ -328,8 +328,10 @@ function installSiteEnhancements(frame, openChat, updateChatPlacement) {
 
   let submittingQuote = false
   const handleQuoteSubmit = (event) => {
-    const activeStep = doc.querySelector('.quote-body .fstep.active')
-    const submitButton = [...(activeStep?.querySelectorAll('button') || [])]
+    // The submit button lives in the form's .form-nav bar, NOT inside the
+    // active .fstep (steps contain no buttons), so search the whole form.
+    const quoteBody = doc.querySelector('.quote-body')
+    const submitButton = [...(quoteBody?.querySelectorAll('button') || [])]
       .find((button) => button.textContent.trim().startsWith('Submit Request'))
     const clickedButton = event.target instanceof doc.defaultView.Element
       ? event.target.closest('button')
@@ -349,18 +351,18 @@ function installSiteEnhancements(frame, openChat, updateChatPlacement) {
     const showSaveError = () => {
       event.preventDefault()
       event.stopImmediatePropagation()
-      const field = doc.querySelector('.quote-body .fstep.active button[type=submit]')
-        || [...(doc.querySelector('.quote-body .fstep.active')?.querySelectorAll('button') || [])]
-          .find((button) => button.textContent.includes('Submit'))
-      if (field) {
-        let status = field.parentElement?.querySelector('.quote-submit-status')
+      // The submit button lives in .form-nav, outside the .fstep steps.
+      const submitBtn = [...(form?.querySelectorAll('button') || [])]
+        .find((button) => button.textContent.trim().startsWith('Submit Request'))
+      if (submitBtn) {
+        let status = form?.querySelector('.quote-submit-status')
         if (!status) {
           status = doc.createElement('p')
           status.className = 'quote-submit-status'
           status.setAttribute('role', 'alert')
           status.setAttribute('aria-live', 'assertive')
           status.style.cssText = 'margin:10px 0 0;color:#fda4af;font-size:13px;line-height:1.5'
-          field.parentElement?.appendChild(status)
+          form?.appendChild(status)
         }
         status.textContent = 'Some required fields could not be read, so your request was NOT saved. Please complete every required field (including the project description and contact consent) and submit again. If this keeps happening, email us directly.'
       }
@@ -433,7 +435,7 @@ function installSiteEnhancements(frame, openChat, updateChatPlacement) {
     status.setAttribute('role', 'status')
     status.setAttribute('aria-live', 'polite')
     status.style.cssText = 'margin:10px 0 0;color:#aeb5cc;font-size:13px;line-height:1.5'
-    submitButton.parentElement?.appendChild(status)
+    form?.appendChild(status)
     submitButton.disabled = true
     submittingQuote = true
     status.textContent = 'Saving your request securely...'
