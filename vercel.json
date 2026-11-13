@@ -9,6 +9,10 @@
       "destination": "/api/handler?path=:path*"
     },
     {
+      "source": "/admin",
+      "destination": "/admin.html"
+    },
+    {
       "source": "/:path*",
       "destination": "/index.html"
     }

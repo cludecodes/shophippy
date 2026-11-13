@@ -3,6 +3,9 @@ import express from 'express'
 import pg from 'pg'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { createWorkflow } from './workflow.js'
+import { generatePack } from './packEngine.js'
+import { createAdminRouter } from './admin.js'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 dotenv.config({ path: path.join(root, '.env.local') })
@@ -13,6 +16,7 @@ const pool = databaseUrl ? new pg.Pool({ connectionString: databaseUrl, max: 5 }
 const rateLimits = new Map()
 const rateLimitWindowMs = 15 * 60 * 1000
 const maxQuotesPerWindow = 5
+const workflow = createWorkflow({ pool, generatePack })
 
 if (pool) {
   pool.on('error', (error) => {
@@ -23,7 +27,7 @@ if (pool) {
 export function createApiRouter() {
   const router = express.Router()
   router.use(express.json({ limit: '16kb' }))
-
+  router.use('/admin', createAdminRouter({ pool, workflow }))
   router.get('/health', async (_request, response) => {
     if (!pool) {
       response.status(503).json({ error: 'Database is not configured. Set DATABASE_URL.' })
@@ -112,8 +116,8 @@ export function createApiRouter() {
     try {
       const result = await pool.query(
         `INSERT INTO public.quote_requests
-          (project_type, full_name, email, phone, country, company, currency, budget_range, details, contact_consent, form_data)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb)
+          (project_type, full_name, email, phone, country, company, currency, budget_range, details, contact_consent, form_data, public_reference, raw_submission)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb, $12, $13::jsonb)
          RETURNING id`,
         [
           quote.projectType.trim(),
@@ -127,9 +131,26 @@ export function createApiRouter() {
           quote.details.trim(),
           quote.contactConsent,
           JSON.stringify(quote.formData),
+          null,
+          // Immutable snapshot of the validated original submission.
+          JSON.stringify(quote),
         ],
       )
-      response.status(201).json({ id: result.rows[0].id })
+      const requestId = result.rows[0].id
+      // Human-readable, non-sensitive reference: SH-XXXXXXXX from the UUID.
+      const reference = `SH-${requestId.replace(/-/g, '').slice(0, 8).toUpperCase()}`
+      await pool.query(
+        'UPDATE public.quote_requests SET public_reference = $2 WHERE id = $1',
+        [requestId, reference],
+      )
+
+      // Quote-to-pack workflow runs server-side before responding (it is
+      // fast and must not depend on the client keeping the connection).
+      let workflowStatus = 'new'
+      const workflowResult = await workflow.processNewQuote(requestId)
+      if (workflowResult?.ok && workflowResult.status) workflowStatus = workflowResult.status
+
+      response.status(201).json({ id: requestId, reference, status: workflowStatus })
     } catch (error) {
       console.error('Saving quote request to Neon failed:', error.message)
       response.status(500).json({ error: 'We could not save your quote request. Please try again.' })

@@ -47,6 +47,16 @@ The Vite app includes the USD/PKR quote budget selector and Sara, a local virtua
 
 Live at https://shophippy-omega.vercel.app (Vercel project `shophippy`, GitHub repo `cludecodes/shophippy` — pushes to `main` deploy automatically).
 
+## Admin dashboard (quote-to-production workflow)
+
+Open `/admin` (in production) or `http://localhost:3000/admin.html` (dev). Sign-in uses the `ADMIN_PASSWORD` environment variable (owner role, signed HttpOnly session cookie — never hardcode it in the repo).
+
+Workflow: every website quote submission now creates an immutable request record (`SH-XXXXXXXX` reference, raw submission snapshot) and automatically generates a versioned production pack — executive summary, requirements brief, clarification questions, solution architecture, UX plan, scope of work, internal effort estimate (effort ranges only; pricing requires admin decision), production plan, task backlog, request-specific agent prompts, QA test plan, risk review, and release checklist. Status flows `new → processing → ready_for_review / needs_clarification → approved / rejected`, with every step recorded in an append-only audit log.
+
+Admins can review each request workspace, edit artifacts (saved as new versions), regenerate artifacts, copy/download prompts, export the full ZIP pack (spec folder layout with artifact manifest), assign an owner, approve exact artifact versions (approved versions are locked), or reject with a reason. Requests without a stated timeline pause at `needs_clarification` instead of inventing scope.
+
+Migrations 003–004 add the workflow tables (`quote_artifacts`, `quote_agent_runs`, `quote_audit_events`). Run `npm run test` for the pack-engine test suite (Node built-in test runner).
+
 ## Alternative: Open HTML only
 If you don't want Node:
 - Right-click `static-build.html` → Open with Live Server extension

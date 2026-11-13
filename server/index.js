@@ -15,6 +15,9 @@ app.use('/api', createApiRouter())
 if (isProduction) {
   const dist = path.resolve(root, 'shophippy-studio', 'dist')
   app.use(express.static(dist))
+  app.get('/admin', (_request, response) => {
+    response.sendFile(path.join(dist, 'admin.html'))
+  })
   app.get('*', (_request, response, next) => {
     response.sendFile(path.join(dist, 'index.html'), (error) => {
       if (error) next(error)
