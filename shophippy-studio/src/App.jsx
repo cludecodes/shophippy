@@ -346,6 +346,25 @@ function installSiteEnhancements(frame, openChat, updateChatPlacement) {
     }
 
     const form = doc.querySelector('.quote-body')
+    const showSaveError = () => {
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      const field = doc.querySelector('.quote-body .fstep.active button[type=submit]')
+        || [...(doc.querySelector('.quote-body .fstep.active')?.querySelectorAll('button') || [])]
+          .find((button) => button.textContent.includes('Submit'))
+      if (field) {
+        let status = field.parentElement?.querySelector('.quote-submit-status')
+        if (!status) {
+          status = doc.createElement('p')
+          status.className = 'quote-submit-status'
+          status.setAttribute('role', 'alert')
+          status.setAttribute('aria-live', 'assertive')
+          status.style.cssText = 'margin:10px 0 0;color:#fda4af;font-size:13px;line-height:1.5'
+          field.parentElement?.appendChild(status)
+        }
+        status.textContent = 'Some required fields could not be read, so your request was NOT saved. Please complete every required field (including the project description and contact consent) and submit again. If this keeps happening, email us directly.'
+      }
+    }
     const getField = (pattern) => [...(form?.querySelectorAll('.field') || [])]
       .find((field) => pattern.test(field.querySelector('label')?.textContent || ''))
     const valueFor = (pattern) => {
@@ -359,13 +378,17 @@ function installSiteEnhancements(frame, openChat, updateChatPlacement) {
     const email = valueFor(/email/i)
     const phone = valueFor(/phone/i)
     const country = valueFor(/country/i)
-    const details = valueFor(/details|describe|brief/i)
+    const details = valueFor(/tell us more|project details|details|describe|brief/i)
     const consent = [...(form?.querySelectorAll('.check-line') || [])]
       .find((label) => /agree to be contacted/i.test(label.textContent))
       ?.querySelector('input[type=checkbox]')?.checked === true
 
     if (!fullName || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)
       || !phone || !country || details.length < 15 || !consent) {
+      // Never let a failed save look like success: the static form has its own
+      // decorative "Your request is on its way!" screen. If we cannot extract
+      // a complete payload, block the native submit and tell the user clearly.
+      showSaveError()
       return
     }
 
@@ -373,7 +396,10 @@ function installSiteEnhancements(frame, openChat, updateChatPlacement) {
     const budget = getField(/estimated budget/i)?.querySelector('select')
     const selectedCurrency = getField(/estimated budget/i)
       ?.querySelector('.shophippy-currency-mode button[aria-pressed="true"]')?.dataset.currency
-    if (!projectType || !budget || budget.selectedIndex < 1 || !selectedCurrency) return
+    if (!projectType || !budget || budget.selectedIndex < 1 || !selectedCurrency) {
+      showSaveError()
+      return
+    }
 
     const formData = {}
     for (const field of form.querySelectorAll('.field')) {
